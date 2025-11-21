@@ -1,241 +1,154 @@
-# POS POC - Point of Sale Proof of Concept
+# README.md
 
-A simple static website that displays and manages orders from an API endpoint, designed to integrate with POS systems.
+# POS POC – Static Order Listing Website
 
-## Features
+This repository contains a **static website** used as part of a **Proof of Concept (POC)** for evaluating POS (Point-of-Sale) integration capabilities.
+The site displays a simple list of sample orders and provides a **“Add to Order”** call-to-action (CTA) that POS vendors can customize to integrate with their own transaction flows.
 
-- **Auto-Loading Order List**: Automatically fetches and displays orders from the API endpoint
-- **Order Details**: Shows detailed information including customer name, items, quantities, and prices
-- **Add to Order**: Sends selected order to POS system via POST request
-- **Auto-Refresh**: Refreshes order list every 30 seconds
-- **Responsive Design**: Works on desktop and mobile devices
-- **GitHub Pages Ready**: Can be hosted on GitHub Pages for easy POS integration
+The reference site is also hosted here for preview:
+**[https://nithins1989.github.io/pos-poc/](https://nithins1989.github.io/pos-poc/)**
 
-## Quick Start
+---
 
-### Option 1: Local Testing
+## 🚀 Purpose of This POC
 
-1. **Clone or download this repository**
+Many POS platforms need to embed or load external web experiences in order to enhance workflows—e.g., importing orders or add-on transactions from a vendor site.
 
-2. **Run locally**:
-   ```bash
-   # Navigate to the pos-poc folder
-   cd pos-poc
-   
-   # Start a local server
-   python3 -m http.server 8080
-   ```
-   
-4. **Open in browser**: `http://localhost:8080`
+This POC demonstrates:
 
-### Option 2: Deploy to GitHub Pages
+* Serving a simple static website from GitHub Pages or AWS.
+* Displaying a list of orders.
+* Allowing the POS to trigger its transaction API when the user clicks **Add to Order**.
+* Enabling the POS vendor to pull, modify, host, and integrate this site with minimal effort.
 
-1. **Create a GitHub Repository**:
-   - Go to GitHub and create a new repository (e.g., `pos-poc`)
-   - Initialize without README (we already have one)
+Vendors can adopt this as a **template**, perform required code changes, and host it on their own infrastructure.
 
-2. **Push your code**:
-   ```bash
-   cd pos-poc
-   git init
-   git add .
-   git commit -m "Initial POS POC commit"
-   git branch -M main
-   git remote add origin https://github.com/YOUR-USERNAME/pos-poc.git
-   git push -u origin main
-   ```
+---
 
-3. **Enable GitHub Pages**:
-   - Go to your repository on GitHub
-   - Click **Settings** → **Pages**
-   - Under "Source", select **main** branch
-   - Click **Save**
-   - Your site will be available at: `https://YOUR-USERNAME.github.io/pos-poc/`
+## 🗂️ Repository Structure
 
-4. **Update POS Configuration** (Optional):
-   - Edit `script.js` in your repository
-   - Update the `POS_API_ENDPOINT` constant with your POS system URL
-   - Uncomment the POS integration code in the `addToOrder()` function
-   - Commit and push changes
-
-## POS Integration
-
-### Using the Hosted Page in POS System
-
-Once deployed to GitHub Pages, you can integrate it into your POS system:
-
-#### Method 1: iFrame Integration
-```html
-<!-- Embed in your POS dashboard -->
-<iframe 
-    src="https://YOUR-USERNAME.github.io/pos-poc/" 
-    width="100%" 
-    height="800px" 
-    frameborder="0">
-</iframe>
+```
+/
+├── index.html          # Main page with UI and order listing
+├── styles.css          # Basic styling
+├── scripts.js          # Logic for Add-to-Order CTA and sample data
+├── assets/             # (Optional) images or static assets
+└── README.md           # This file
 ```
 
-#### Method 2: Direct Link
-```html
-<!-- Open in new window/tab -->
-<a href="https://YOUR-USERNAME.github.io/pos-poc/" target="_blank">
-    View Orders
-</a>
-```
+---
 
-#### Method 3: WebView (Mobile POS)
-```javascript
-// For mobile POS apps
-const webView = new WebView();
-webView.loadUrl('https://YOUR-USERNAME.github.io/pos-poc/');
-```
+## 🛠️ What Vendors Need to Modify
 
-### Configuring "Add to Order" for POS
+### 1. **Add-to-Order CTA Logic**
 
-The "Add to Order" button sends the selected order to your POS system. Update the endpoint in `script.js`:
+In `scripts.js`, the function handling the “Add to Order” button is intentionally generic.
+Vendors must update this code to:
+
+* Call their internal POS transaction API
+* Pass required order identifiers or metadata
+* Handle the callback or response as needed
+* Trigger any required messaging back to the POS or parent frame
+
+Example placeholder (for vendor modification):
 
 ```javascript
-// In the addToOrder() function, uncomment and configure:
-fetch('https://YOUR-POS-SYSTEM.com/api/add-order', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer YOUR-API-KEY' // If needed
-    },
-    body: JSON.stringify({
-        orderId: order.id,
-        customerName: order.customerName,
-        items: order.items,
-        total: order.total
-    })
-})
-.then(response => response.json())
-.then(data => {
-    alert('Order added to POS successfully!');
-    console.log('Success:', data);
-})
-.catch((error) => {
-    alert('Error adding order to POS');
-    console.error('Error:', error);
-});
-```
+function addToOrder(orderId) {
+    console.log("Vendor should replace this with their POS API integration.");
+    console.log("Selected Order:", orderId);
 
-### POS Endpoint Requirements
-
-Your POS system should accept POST requests with this structure:
-
-**Endpoint**: `POST /api/add-order`
-
-**Request Body**:
-```json
-{
-  "orderId": "ORD-1001",
-  "customerName": "Alice Johnson",
-  "items": [
-    {
-      "id": "ITEM-001",
-      "product_name": "Cotton T-Shirt",
-      "price": 12.99,
-      "qty": 2
-    }
-  ],
-  "total": 65.97
+    // TODO: Insert POS transaction API call here
+    // Example:
+    // window.pos.send({
+    //     action: "addToTransaction",
+    //     orderId: orderId
+    // });
 }
 ```
 
-**Expected Response**:
-```json
-{
-  "success": true,
-  "message": "Order added successfully",
-  "posOrderId": "POS-12345"
-}
+---
+
+## 📥 How to Use This Template
+
+### **Step 1: Clone the Repository**
+
+```bash
+git clone https://github.com/nithins1989/pos-poc.git
 ```
 
-## Mock Data
+Or download it as a ZIP from GitHub.
 
-This POC uses mock data by default. The sample data includes:
-- 3 orders (ORD-1001, ORD-1002, ORD-1003)
-- Multiple items per order with quantities and prices
-- Customer names and calculated totals
+### **Step 2: Apply Vendor-Specific Changes**
 
-To modify the mock data, edit the `useMockData()` function in `script.js`.
+Modify:
 
-### CORS Configuration (For POS Integration)
+* `scripts.js` → Add-to-order integration logic
+* `index.html` → Optionally customize UI or styling
+* `styles.css` → Apply brand styling if desired
 
-If your POS API is on a different domain, ensure CORS is enabled:
+### **Step 3: Host the Website**
 
-```javascript
-// Example server-side CORS headers
-Access-Control-Allow-Origin: https://YOUR-USERNAME.github.io
-Access-Control-Allow-Methods: POST, OPTIONS
-Access-Control-Allow-Headers: Content-Type, Authorization
+Vendors may host the modified site in:
+
+---
+
+## ☁️ Hosting Options
+
+### **Option A: GitHub Pages (Recommended for Simplicity)**
+
+1. Push the modified repository to your organization’s GitHub account.
+2. Go to **Settings → Pages**.
+3. Select the **main branch / root** folder.
+4. Save.
+
+GitHub will provide a deployment URL like:
+
+```
+https://<your-org>.github.io/<your-repo>/
 ```
 
-## File Structure
+---
 
+### **Option B: AWS S3 + CloudFront**
+
+1. Create an S3 bucket configured for **static website hosting**.
+2. Upload all files from the repository.
+3. Enable public access (or restrict to POS IPs).
+4. Optionally place CloudFront in front for CDN distribution.
+5. Map your custom domain if required.
+
+Example S3 upload command:
+
+```bash
+aws s3 sync . s3://your-bucket-name --acl public-read
 ```
-pos-poc/
-├── index.html      # Main HTML structure
-├── styles.css      # All styling
-├── script.js       # JavaScript logic and API calls
-└── README.md       # This file
-```
 
-## Customization
+---
 
-### Change Colors
-Edit `styles.css`:
-- Header/Footer: `#2c3e50`
-- Primary Button: `#3498db`
-- Success Color: `#27ae60`
+### **Option C: Any Static Hosting Platform**
 
-### Update Mock Data
-Edit the `useMockData()` function in `script.js` to test with different data.
+This site is fully static → works with:
 
-## Testing Workflow
+* Netlify
+* Vercel
+* Azure Static Web Apps
+* Firebase Hosting
+* Nginx/Apache static hosting
 
-1. **Test Locally**: Use mock data to verify UI and functionality
-2. **Test POS Integration**: Update POS endpoint and test "Add to Order"
-3. **Deploy to GitHub Pages**: Make it accessible to POS systems
-4. **Integrate with POS**: Embed in your POS system using iframe or link
+---
 
-## Security Considerations
+## 🧪 Testing the Integration
 
-- **API Keys**: Don't commit API keys to GitHub. Use environment variables or server-side proxy
-- **HTTPS**: Always use HTTPS for API endpoints
-- **Authentication**: Implement proper authentication for POS endpoints
-- **Rate Limiting**: Implement rate limiting on your API
+POS vendors should:
 
-## Troubleshooting
+1. Load the page inside their POS system (iframe, webview, in-app browser, etc.).
+2. Verify that **Add to Order** triggers the correct POS workflow.
+3. Confirm order IDs or payloads are passed correctly.
+4. Log, debug, and validate any transaction-related responses.
 
-### "Add to Order" Not Working
-- Verify POS endpoint URL is correct
-- Check network tab in browser dev tools
-- Ensure POS API accepts the request format
-- Check for CORS issues
+---
 
-### GitHub Pages Not Updating
-- Wait 1-2 minutes after pushing changes
-- Clear browser cache
-- Check GitHub Actions for build status
+## 📄 License
 
-## Browser Support
-
-Works in all modern browsers:
-- Chrome/Edge (recommended)
-- Firefox
-- Safari
-- Mobile browsers
-
-## License
-
-This is a proof of concept. Modify as needed for your use case.
-
-## Support
-
-For issues or questions:
-1. Check browser console for errors
-2. Verify API endpoints are accessible
-3. Test with mock data first
-4. Check CORS configuration
+This POC template is provided for evaluation and integration purposes.
+Vendors may clone, modify, and host their own version as required.
