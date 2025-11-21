@@ -1,6 +1,6 @@
 # README.md
 
-# POS POC – Static Order Listing Website
+# POS POC/Template – Static Order Listing Website
 
 This repository contains a **static website** used as part of a **Proof of Concept (POC) / Template** for evaluating POS (Point-of-Sale) integration capabilities.
 The site displays a simple list of sample orders and provides a **“Add to Order”** call-to-action (CTA) that POS vendors can customize to integrate with their own transaction flows.
