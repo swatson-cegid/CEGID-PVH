@@ -1,6 +1,5 @@
-// Configuration
-const API_BASE_URL = 'https://X/test';
-const ORDERS_ENDPOINT = `${API_BASE_URL}/orders`;
+// Configuration - POS Integration
+const POS_API_ENDPOINT = 'https://YOUR-POS-SYSTEM.com/api/add-order'; // Update with your POS endpoint
 
 // State
 let orders = [];
@@ -10,42 +9,12 @@ let selectedOrderId = null;
 const orderListEl = document.getElementById('order-list');
 const orderDetailsEl = document.getElementById('order-details');
 
-// Initialize
+// Initialize - Load mock data on page load
 document.addEventListener('DOMContentLoaded', () => {
-    const useMock = true; // Set to false to use real API
-    
-    if (useMock) {
-        useMockData();
-    } else {
-        fetchOrders();
-        setInterval(fetchOrders, 30000);
-    }
+    useMockData();
 });
 
-// Fetch Orders from API
-async function fetchOrders() {
-    try {
-        if (orders.length === 0) {
-            orderListEl.innerHTML = '<p class="loading">Loading orders...</p>';
-        }
-        
-        const response = await fetch(ORDERS_ENDPOINT);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        orders = parseOrdersData(data);
-        renderOrderList();
-        
-    } catch (error) {
-        console.error('Error fetching orders:', error);
-        orderListEl.innerHTML = `<p class="error">Failed to load orders.<br><small>${error.message}</small></p>`;
-    }
-}
-
-// Parse the order structure
+// Parse the order structure from mock data
 function parseOrdersData(data) {
     const parsedOrders = [];
     
@@ -55,7 +24,6 @@ function parseOrdersData(data) {
     ordersList.forEach(order => {
         const orderId = order.id;
         const customerName = order.customer_name;
-        const timestamp = order.timestamp;
         const items = order.items || [];
         
         // Calculate total for the order
@@ -67,7 +35,6 @@ function parseOrdersData(data) {
         parsedOrders.push({
             id: orderId,
             customerName: customerName,
-            timestamp: timestamp,
             items: items,
             total: orderTotal,
             itemCount: items.length
@@ -146,12 +113,9 @@ function renderOrderDetails(order) {
         const itemTotal = item.price * item.qty;
         itemsHtml += `
             <div class="item-row">
-                <img src="${item.thumbnail}" alt="${item.product_name}" class="item-thumbnail" 
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23ddd%22 width=%2280%22 height=%2280%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22%3ENo Image%3C/text%3E%3C/svg%3E'">
                 <div class="item-info">
                     <div class="item-id">${item.id}</div>
                     <div class="item-name">${item.product_name}</div>
-                    <div class="item-sku">SKU: ${item.sku}</div>
                 </div>
                 <div class="item-details">
                     <span>$${item.price.toFixed(2)} × ${item.qty}</span>
@@ -161,22 +125,11 @@ function renderOrderDetails(order) {
         `;
     });
     
-    // Format timestamp
-    const orderDate = new Date(order.timestamp);
-    const formattedDate = orderDate.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    
     orderDetailsEl.innerHTML = `
         <div class="order-details-content">
             <div class="order-header">
                 <h3>${order.id}</h3>
                 <p class="customer-name">${order.customerName}</p>
-                <p class="order-timestamp">${formattedDate}</p>
             </div>
             
             <div class="items-section">
@@ -196,7 +149,7 @@ function renderOrderDetails(order) {
     `;
 }
 
-// Add to Order function
+// Add to Order function - Sends order to POS system
 function addToOrder() {
     if (!selectedOrderId) {
         alert('Please select an order first');
@@ -205,29 +158,67 @@ function addToOrder() {
     
     const order = orders.find(o => o.id === selectedOrderId);
     
-    // Here you can add your logic to POST to an endpoint
-    console.log('Adding to order:', order);
-    alert(`Order ${selectedOrderId} for ${order.customerName} added successfully!`);
+    // Disable button during processing
+    const button = document.querySelector('.add-to-order-btn');
+    if (button) {
+        button.disabled = true;
+        button.textContent = 'Processing...';
+    }
     
-    // Example POST request (uncomment and modify as needed):
+    // Log to console for debugging
+    console.log('Adding to POS:', order);
+    
+    // UNCOMMENT AND CONFIGURE FOR PRODUCTION POS INTEGRATION:
     /*
-    fetch('https://X/test/add-order', {
+    fetch(POS_API_ENDPOINT, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            // Add authentication if required:
+            // 'Authorization': 'Bearer YOUR-API-KEY',
+            // 'X-API-Key': 'YOUR-API-KEY'
         },
-        body: JSON.stringify(order)
+        body: JSON.stringify({
+            orderId: order.id,
+            customerName: order.customerName,
+            items: order.items,
+            total: order.total,
+            timestamp: new Date().toISOString()
+        })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
-        alert('Order added successfully!');
-        console.log('Success:', data);
+        console.log('POS Response:', data);
+        alert(`✓ Order ${order.id} added to POS successfully!\nPOS Order ID: ${data.posOrderId || 'N/A'}`);
     })
     .catch((error) => {
-        alert('Error adding order');
-        console.error('Error:', error);
+        console.error('Error adding to POS:', error);
+        alert(`Failed to add order to POS: ${error.message}`);
+    })
+    .finally(() => {
+        // Re-enable button
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Add to Order';
+        }
     });
     */
+    
+    // MOCK SUCCESS (Remove this when using real POS API)
+    setTimeout(() => {
+        alert(`✓ Order ${order.id} for ${order.customerName} added to POS!\n\nTotal: $${order.total.toFixed(2)}\nItems: ${order.itemCount}`);
+        
+        // Re-enable button
+        if (button) {
+            button.disabled = false;
+            button.textContent = 'Add to Order';
+        }
+    }, 1000);
 }
 
 // Mock data for testing
@@ -237,69 +228,54 @@ function useMockData() {
             {
                 "id": "ORD-1001",
                 "customer_name": "Alice Johnson",
-                "timestamp": "2025-01-15T10:24:30Z",
                 "items": [
                     {
                         "id": "ITEM-001",
-                        "sku": "TSH-CTN-001",
                         "product_name": "Cotton T-Shirt",
                         "price": 12.99,
-                        "qty": 2,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW10800_C1Z_productswatch"
+                        "qty": 2
                     },
                     {
                         "id": "ITEM-002",
-                        "sku": "JNS-DNM-034",
                         "product_name": "Denim Jeans",
                         "price": 39.99,
-                        "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/DW0DW22454_1BK_productswatch"
+                        "qty": 1
                     }
                 ]
             },
             {
                 "id": "ORD-1002",
                 "customer_name": "Brian Smith",
-                "timestamp": "2025-01-15T11:05:10Z",
                 "items": [
                     {
                         "id": "ITEM-010",
-                        "sku": "HDY-FLC-120",
                         "product_name": "Hoodie",
                         "price": 29.99,
-                        "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW11599_L6K_productswatch"
+                        "qty": 1
                     },
                     {
                         "id": "ITEM-011",
-                        "sku": "CAP-CLT-021",
                         "product_name": "Baseball Cap",
                         "price": 14.50,
-                        "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/AM0AM12020_C1G_productswatch"
+                        "qty": 1
                     },
                     {
                         "id": "ITEM-012",
-                        "sku": "SOX-ATH-003",
                         "product_name": "Athletic Socks (3-Pack)",
                         "price": 9.99,
-                        "qty": 2,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/08A1371111_085_productswatch"
+                        "qty": 2
                     }
                 ]
             },
             {
                 "id": "ORD-1003",
                 "customer_name": "Carla Reyes",
-                "timestamp": "2025-01-15T12:40:55Z",
                 "items": [
                     {
                         "id": "ITEM-020",
-                        "sku": "JKT-LGT-078",
                         "product_name": "Lightweight Jacket",
                         "price": 49.99,
-                        "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW38905_DW5_productswatch"
+                        "qty": 1
                     }
                 ]
             }
