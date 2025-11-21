@@ -2,7 +2,7 @@
 
 # POS POC – Static Order Listing Website
 
-This repository contains a **static website** used as part of a **Proof of Concept (POC)** for evaluating POS (Point-of-Sale) integration capabilities.
+This repository contains a **static website** used as part of a **Proof of Concept (POC) / Template** for evaluating POS (Point-of-Sale) integration capabilities.
 The site displays a simple list of sample orders and provides a **“Add to Order”** call-to-action (CTA) that POS vendors can customize to integrate with their own transaction flows.
 
 The reference site is also hosted here for preview:
@@ -10,11 +10,11 @@ The reference site is also hosted here for preview:
 
 ---
 
-## 🚀 Purpose of This POC
+## 🚀 Purpose of This POC/Template
 
 Many POS platforms need to embed or load external web experiences in order to enhance workflows—e.g., importing orders or add-on transactions from a vendor site.
 
-This POC demonstrates:
+This POC/Template demonstrates:
 
 * Serving a simple static website from GitHub Pages or AWS.
 * Displaying a list of orders.
