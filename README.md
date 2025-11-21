@@ -116,7 +116,7 @@ Vendors may host the modified site in:
 
 ## ☁️ Hosting Options
 
-### **Option A: GitHub Pages (Recommended for Simplicity)**
+### **Option A: GitHub Pages**
 
 1. Push the modified repository to your organization’s GitHub account.
 2. Go to **Settings → Pages**.
