@@ -527,9 +527,9 @@ function useMockData() {
                 "items": [
                     {
                         "id": "1256347890",
-                        "sku": "MW0MW38905DW5",
-                        "product_name": "Logo Patch Hooded Jacket",
-                        "price": 138.00,
+                        "sku": "UKC002                           X",
+                        "product_name": "Cegid Woolly Hat",
+                        "price": 20.00,
                         "qty": 1,
                         "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW38905_DW5_productswatch"
                     }
