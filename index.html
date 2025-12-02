@@ -18,28 +18,50 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label for="api-base-url">API Base URL</label>
-                    <input type="text" id="api-base-url" placeholder="https://your-api-endpoint.com" />
+                    <label for="environment">Environment *</label>
+                    <select id="environment" class="form-select">
+                        <option value="test">Test</option>
+                        <option value="prod">Production</option>
+                    </select>
+                    <small class="form-hint">Token URL: https://integration-retail-services.cegid.cloud/p/as/connect/token</small>
                 </div>
                 <div class="form-group">
-                    <label for="api-key">API Key (Optional)</label>
-                    <input type="text" id="api-key" placeholder="Your API Key" />
+                    <label for="username">Username (Workspace) *</label>
+                    <input type="text" id="username" placeholder="{{user}} @ {{workspace}}" />
+                    <small class="form-hint">Format: user@workspace (e.g., john@mycompany)</small>
                 </div>
                 <div class="form-group">
-                    <label for="store-id">Store ID</label>
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" placeholder="Your password" />
+                    <small class="form-hint">Your Cegid Retail account password</small>
+                </div>
+                <div class="form-group">
+                    <label>Client ID</label>
+                    <input type="text" value="CegidRetailResourceFlowClient" disabled class="form-disabled" />
+                    <small class="form-hint">Fixed client ID for Cegid Retail</small>
+                </div>
+                <div class="form-group">
+                    <label for="api-base-url">API Base URL *</label>
+                    <input type="text" id="api-base-url" placeholder="https://your-api-endpoint.com/api/v1" />
+                    <small class="form-hint">External Basket API base URL</small>
+                </div>
+                <div class="form-group">
+                    <label for="store-id">Store ID *</label>
                     <input type="text" id="store-id" placeholder="STORE001" />
                 </div>
                 <div class="form-group">
-                    <label for="warehouse-id">Warehouse ID</label>
+                    <label for="warehouse-id">Warehouse ID *</label>
                     <input type="text" id="warehouse-id" placeholder="WH001" />
                 </div>
                 <div class="form-group">
                     <label for="currency">Currency</label>
                     <input type="text" id="currency" placeholder="USD" maxlength="3" />
+                    <small class="form-hint">ISO 4217 currency code (e.g., USD, EUR, GBP)</small>
                 </div>
                 <div class="form-group">
                     <label for="pos-redirect-url">LiveStore POS URL</label>
                     <input type="text" id="pos-redirect-url" placeholder="https://retail-services.cegid.cloud/t/pos/" />
+                    <small class="form-hint">URL to redirect after basket creation</small>
                 </div>
             </div>
             <div class="modal-footer">
