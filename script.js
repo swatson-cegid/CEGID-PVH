@@ -1,16 +1,16 @@
 // Configuration
 let config = {
     environment: 'p', // Fixed to 'p' - this is the actual path
-    useProxy: false, // Set to true for local development with CORS proxy
+    useProxy: true, // Set to true for local development with CORS proxy
     tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
     proxyTokenUrl: 'http://localhost:3000/token',
     clientId: 'CegidRetailResourceFlowClient',
-    username: '',
-    password: '',
+    username: 'SWA@PSR_UK2',
+    password: 'Cegid.2020',
     apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1',
     proxyApiBaseUrl: 'http://localhost:3000',
-    storeId: '',
-    warehouseId: '',
+    storeId: 'UK201',
+    warehouseId: 'UK201',
     currency: 'GBP'
 };
 
