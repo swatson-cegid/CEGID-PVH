@@ -1,12 +1,20 @@
 // Configuration
 let config = {
+    environment: 'p', // 'test' or 'prod'
+    tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
+    clientId: 'CegidRetailResourceFlowClient',
+    username: 'SWA@PSR_UK2',
+    password: 'Cegid.2020',
     apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1',
-    apiKey: '',
     storeId: 'UK201',
     warehouseId: 'UK201',
     currency: 'GBP',
     posRedirectUrl: 'https://integration-retail-services.cegid.cloud/p/pos/'
 };
+
+// Token cache
+let accessToken = null;
+let tokenExpiry = null;
 
 // State
 let orders = [];
@@ -34,34 +42,47 @@ function loadConfiguration() {
 
 function saveConfiguration() {
     const newConfig = {
+        environment: document.getElementById('environment').value.trim(),
+        clientId: 'CegidRetailResourceFlowClient', // Fixed client_id
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value.trim(),
         apiBaseUrl: document.getElementById('api-base-url').value.trim(),
-        apiKey: document.getElementById('api-key').value.trim(),
         storeId: document.getElementById('store-id').value.trim(),
         warehouseId: document.getElementById('warehouse-id').value.trim(),
         currency: document.getElementById('currency').value.trim() || 'USD',
         posRedirectUrl: document.getElementById('pos-redirect-url').value.trim()
     };
 
+    // Update token URL based on environment
+    newConfig.tokenUrl = `https://integration-retail-services.cegid.cloud/${newConfig.environment}/as/connect/token`;
+
     // Validate required fields
-    if (!newConfig.apiBaseUrl || !newConfig.storeId || !newConfig.warehouseId) {
+    if (!newConfig.username || !newConfig.password || !newConfig.apiBaseUrl || !newConfig.storeId || !newConfig.warehouseId) {
         showNotification('Please fill in all required fields', 'error');
         return;
     }
 
     config = newConfig;
     localStorage.setItem('posConfig', JSON.stringify(config));
+    
+    // Clear cached token when config changes
+    accessToken = null;
+    tokenExpiry = null;
+    
     closeConfigModal();
     showNotification('Configuration saved successfully', 'success');
 }
 
 function openConfigModal() {
     // Populate form with current config
-    document.getElementById('api-base-url').value = config.apiBaseUrl;
-    document.getElementById('api-key').value = config.apiKey;
-    document.getElementById('store-id').value = config.storeId;
-    document.getElementById('warehouse-id').value = config.warehouseId;
-    document.getElementById('currency').value = config.currency;
-    document.getElementById('pos-redirect-url').value = config.posRedirectUrl;
+    document.getElementById('environment').value = config.environment || 'test';
+    document.getElementById('username').value = config.username || '';
+    document.getElementById('password').value = config.password || '';
+    document.getElementById('api-base-url').value = config.apiBaseUrl || '';
+    document.getElementById('store-id').value = config.storeId || '';
+    document.getElementById('warehouse-id').value = config.warehouseId || '';
+    document.getElementById('currency').value = config.currency || 'USD';
+    document.getElementById('pos-redirect-url').value = config.posRedirectUrl || 'https://retail-services.cegid.cloud/t/pos/';
     
     document.getElementById('config-modal').style.display = 'flex';
 }
@@ -254,6 +275,51 @@ function renderOrderDetails(order) {
     `;
 }
 
+// OAuth2 Token Management
+async function getAccessToken() {
+    // Check if we have a valid cached token
+    if (accessToken && tokenExpiry && Date.now() < tokenExpiry) {
+        return accessToken;
+    }
+
+    try {
+        // Request new access token using Resource Owner Password Credentials
+        const tokenResponse = await fetch(config.tokenUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                grant_type: 'password',
+                client_id: config.clientId,
+                username: config.username,
+                password: config.password,
+                scope: 'RetailBackendApi offline_access'
+            })
+        });
+
+        if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            throw new Error(`Token request failed: ${tokenResponse.status} - ${errorText}`);
+        }
+
+        const tokenData = await tokenResponse.json();
+        
+        // Cache the token
+        accessToken = tokenData.access_token;
+        // Set expiry to 5 minutes before actual expiry for safety
+        const expiresIn = (tokenData.expires_in || 3600) - 300;
+        tokenExpiry = Date.now() + (expiresIn * 1000);
+
+        console.log('Access token acquired successfully');
+        return accessToken;
+
+    } catch (error) {
+        console.error('Error acquiring access token:', error);
+        throw new Error(`Authentication failed: ${error.message}`);
+    }
+}
+
 // Add to Order function - Posts to Cegid External Basket API
 async function addToOrder() {
     if (!selectedOrderId) {
@@ -262,59 +328,61 @@ async function addToOrder() {
     }
 
     // Check if configuration is complete
-    if (!config.apiBaseUrl || !config.storeId || !config.warehouseId) {
-        showNotification('Please configure API settings first', 'error');
+    if (!config.username || !config.password || !config.apiBaseUrl || !config.storeId || !config.warehouseId) {
+        showNotification('Please configure username, password and API settings first', 'error');
         openConfigModal();
         return;
     }
     
     const order = orders.find(o => o.id === selectedOrderId);
     
-    // Build the External Basket API payload
-    const basketPayload = {
-        externalReference: order.id,
-        basketType: "RECEIPT",
-        itemLines: order.items.map((item, index) => ({
-            itemLineId: index + 1,
-            item: {
-                itemCode: item.sku
-            },
-            quantity: item.qty,
-            price: {
-                basePrice: item.price,
-                currentPrice: item.price
-            },
-            lineAmount: {
-                currency: config.currency,
-                value: item.price * item.qty
-            },
-            inventoryOrigin: {
-                warehouseId: config.warehouseId
-            }
-        })),
-        store: {
-            storeId: config.storeId
-        }
-    };
-
     try {
         showLoadingOverlay();
         
-        // Call the Cegid External Basket API
-        const headers = {
-            'Content-Type': 'application/json'
-        };
-        
-        // Add API key to headers if configured
-        if (config.apiKey) {
-            headers['Authorization'] = `Bearer ${config.apiKey}`;
-            // Or use a different header format if required:
-            // headers['X-API-Key'] = config.apiKey;
+        // Step 1: Acquire OAuth2 access token
+        let token;
+        try {
+            token = await getAccessToken();
+        } catch (authError) {
+            throw new Error(`Authentication failed: ${authError.message}`);
         }
+        
+        // Step 2: Build the External Basket API payload
+        const basketPayload = {
+            externalReference: order.id,
+            basketType: "RECEIPT",
+            itemLines: order.items.map((item, index) => ({
+                itemLineId: index + 1,
+                item: {
+                    itemCode: item.sku
+                },
+                quantity: item.qty,
+                price: {
+                    basePrice: item.price,
+                    currentPrice: item.price
+                },
+                lineAmount: {
+                    currency: config.currency,
+                    value: item.price * item.qty
+                },
+                inventoryOrigin: {
+                    warehouseId: config.warehouseId
+                }
+            })),
+            store: {
+                storeId: config.storeId
+            }
+        };
 
+        console.log('Sending basket payload:', basketPayload);
+
+        // Step 3: Call the Cegid External Basket API with Bearer token
         const response = await fetch(`${config.apiBaseUrl}/external-basket`, {
             method: 'POST',
-            headers: headers,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify(basketPayload)
         });
 
@@ -325,10 +393,11 @@ async function addToOrder() {
 
         const data = await response.json();
         
-        // Extract basketUUID from the response
-        const basketUUID = data.basketUUID || data.id || data.uuid;
+        // Step 4: Extract basketUUID from the response
+        const basketUUID = data.basketUUID || data.id || data.uuid || data.basketId;
         
         if (!basketUUID) {
+            console.error('API Response:', data);
             throw new Error('No basket UUID returned from API');
         }
 
@@ -338,7 +407,7 @@ async function addToOrder() {
             response: data
         });
 
-        // Redirect to LiveStore POS with the basket UUID
+        // Step 5: Redirect to LiveStore POS with the basket UUID
         const redirectUrl = `${config.posRedirectUrl}?basketId=${basketUUID}`;
         
         hideLoadingOverlay();
@@ -351,7 +420,7 @@ async function addToOrder() {
 
     } catch (error) {
         hideLoadingOverlay();
-        console.error('Error adding order:', error);
+        console.error('Error processing order:', error);
         showNotification(`Error: ${error.message}`, 'error');
     }
 }
