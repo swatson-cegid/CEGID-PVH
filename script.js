@@ -1,3 +1,13 @@
+// Configuration
+let config = {
+    apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1',
+    apiKey: '',
+    storeId: 'UK201',
+    warehouseId: 'UK201',
+    currency: 'GBP',
+    posRedirectUrl: 'https://integration-retail-services.cegid.cloud/p/pos/'
+};
+
 // State
 let orders = [];
 let selectedOrderId = null;
@@ -5,17 +15,64 @@ let selectedOrderId = null;
 // DOM Elements
 const orderListEl = document.getElementById('order-list');
 const orderDetailsEl = document.getElementById('order-details');
+const orderCountEl = document.getElementById('order-count');
+const loadingOverlay = document.getElementById('loading-overlay');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-        useMockData();
+    loadConfiguration();
+    useMockData();
 });
+
+// Configuration Management
+function loadConfiguration() {
+    const savedConfig = localStorage.getItem('posConfig');
+    if (savedConfig) {
+        config = { ...config, ...JSON.parse(savedConfig) };
+    }
+}
+
+function saveConfiguration() {
+    const newConfig = {
+        apiBaseUrl: document.getElementById('api-base-url').value.trim(),
+        apiKey: document.getElementById('api-key').value.trim(),
+        storeId: document.getElementById('store-id').value.trim(),
+        warehouseId: document.getElementById('warehouse-id').value.trim(),
+        currency: document.getElementById('currency').value.trim() || 'USD',
+        posRedirectUrl: document.getElementById('pos-redirect-url').value.trim()
+    };
+
+    // Validate required fields
+    if (!newConfig.apiBaseUrl || !newConfig.storeId || !newConfig.warehouseId) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    config = newConfig;
+    localStorage.setItem('posConfig', JSON.stringify(config));
+    closeConfigModal();
+    showNotification('Configuration saved successfully', 'success');
+}
+
+function openConfigModal() {
+    // Populate form with current config
+    document.getElementById('api-base-url').value = config.apiBaseUrl;
+    document.getElementById('api-key').value = config.apiKey;
+    document.getElementById('store-id').value = config.storeId;
+    document.getElementById('warehouse-id').value = config.warehouseId;
+    document.getElementById('currency').value = config.currency;
+    document.getElementById('pos-redirect-url').value = config.posRedirectUrl;
+    
+    document.getElementById('config-modal').style.display = 'flex';
+}
+
+function closeConfigModal() {
+    document.getElementById('config-modal').style.display = 'none';
+}
 
 // Parse the order structure
 function parseOrdersData(data) {
     const parsedOrders = [];
-    
-    // Handle the structure: {"orders": [...]}
     const ordersList = data.orders || data;
     
     ordersList.forEach(order => {
@@ -29,7 +86,6 @@ function parseOrdersData(data) {
             return sum + (item.price * item.qty);
         }, 0);
         
-        // Create an entry for the order with all items
         parsedOrders.push({
             id: orderId,
             customerName: customerName,
@@ -46,11 +102,21 @@ function parseOrdersData(data) {
 // Render Order List
 function renderOrderList() {
     if (orders.length === 0) {
-        orderListEl.innerHTML = '<p class="placeholder">No orders found.</p>';
+        orderListEl.innerHTML = `
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 12H42V36C42 38.2091 40.2091 40 38 40H10C7.79086 40 6 38.2091 6 36V12Z" stroke="#CCCCCC" stroke-width="2"/>
+                    <path d="M15 12V9C15 6.79086 16.7909 5 19 5H29C31.2091 5 33 6.79086 33 9V12" stroke="#CCCCCC" stroke-width="2"/>
+                </svg>
+                <p>No orders found</p>
+            </div>
+        `;
+        orderCountEl.textContent = '0';
         return;
     }
     
     orderListEl.innerHTML = '';
+    orderCountEl.textContent = orders.length;
     
     orders.forEach(order => {
         const orderItem = createOrderItem(order);
@@ -66,11 +132,22 @@ function createOrderItem(order) {
         div.classList.add('selected');
     }
     
+    // Format timestamp
+    const orderDate = new Date(order.timestamp);
+    const timeStr = orderDate.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit'
+    });
+    
     div.innerHTML = `
-        <div class="order-item-info">
-            <div class="order-item-id">${order.id}</div>
-            <div class="order-item-name">${order.customerName}</div>
-            <div class="order-item-meta">${order.itemCount} item(s) • $${order.total.toFixed(2)}</div>
+        <div class="order-item-header">
+            <span class="order-item-id">${order.id}</span>
+            <span class="order-item-time">${timeStr}</span>
+        </div>
+        <div class="order-item-customer">${order.customerName}</div>
+        <div class="order-item-meta">
+            <span class="item-count">${order.itemCount} item${order.itemCount !== 1 ? 's' : ''}</span>
+            <span class="order-total">$${order.total.toFixed(2)}</span>
         </div>
     `;
     
@@ -108,20 +185,22 @@ function updateSelectedOrderUI() {
 function renderOrderDetails(order) {
     let itemsHtml = '';
     
-    order.items.forEach(item => {
+    order.items.forEach((item, index) => {
         const itemTotal = item.price * item.qty;
         itemsHtml += `
             <div class="item-row">
-                <img src="${item.thumbnail}" alt="${item.product_name}" class="item-thumbnail" 
-                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23ddd%22 width=%2280%22 height=%2280%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22%3ENo Image%3C/text%3E%3C/svg%3E'">
+                <img src="${item.thumbnail}" 
+                     alt="${item.product_name}" 
+                     class="item-thumbnail" 
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect fill=%22%23f5f5f5%22 width=%2280%22 height=%2280%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2210%22%3ENo Image%3C/text%3E%3C/svg%3E'">
                 <div class="item-info">
-                    <div class="item-id">${item.id}</div>
                     <div class="item-name">${item.product_name}</div>
                     <div class="item-sku">SKU: ${item.sku}</div>
+                    <div class="item-id">ID: ${item.id}</div>
                 </div>
-                <div class="item-details">
-                    <span>$${item.price.toFixed(2)} × ${item.qty}</span>
-                    <span class="item-total">$${itemTotal.toFixed(2)}</span>
+                <div class="item-pricing">
+                    <div class="item-unit-price">$${item.price.toFixed(2)} × ${item.qty}</div>
+                    <div class="item-total">$${itemTotal.toFixed(2)}</div>
                 </div>
             </div>
         `;
@@ -140,60 +219,178 @@ function renderOrderDetails(order) {
     orderDetailsEl.innerHTML = `
         <div class="order-details-content">
             <div class="order-header">
-                <h3>${order.id}</h3>
-                <p class="customer-name">${order.customerName}</p>
-                <p class="order-timestamp">${formattedDate}</p>
-            </div>
-            
-            <div class="items-section">
-                <h4>Items (${order.itemCount})</h4>
-                ${itemsHtml}
-            </div>
-            
-            <div class="order-total-section">
-                <div class="detail-row total-row">
-                    <span class="detail-label">Total Amount:</span>
-                    <span class="detail-value total">$${order.total.toFixed(2)}</span>
+                <div class="order-id-badge">${order.id}</div>
+                <div class="order-info">
+                    <div class="customer-name">${order.customerName}</div>
+                    <div class="order-timestamp">${formattedDate}</div>
                 </div>
             </div>
             
-            <button class="add-to-order-btn" onclick="addToOrder()">Add to Order</button>
+            <div class="items-section">
+                <h3>Items (${order.itemCount})</h3>
+                <div class="items-container">
+                    ${itemsHtml}
+                </div>
+            </div>
+            
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span class="summary-label">Subtotal:</span>
+                    <span class="summary-value">$${order.total.toFixed(2)}</span>
+                </div>
+                <div class="summary-row total">
+                    <span class="summary-label">Total:</span>
+                    <span class="summary-value">$${order.total.toFixed(2)}</span>
+                </div>
+            </div>
+            
+            <button class="add-to-order-btn" onclick="addToOrder()">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 10H4M10 4V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Add to LiveStore POS
+            </button>
         </div>
     `;
 }
 
-// Add to Order function
-function addToOrder() {
+// Add to Order function - Posts to Cegid External Basket API
+async function addToOrder() {
     if (!selectedOrderId) {
-        alert('Please select an order first');
+        showNotification('Please select an order first', 'error');
+        return;
+    }
+
+    // Check if configuration is complete
+    if (!config.apiBaseUrl || !config.storeId || !config.warehouseId) {
+        showNotification('Please configure API settings first', 'error');
+        openConfigModal();
         return;
     }
     
     const order = orders.find(o => o.id === selectedOrderId);
     
-    // Here you can add your logic to POST to an endpoint
-    console.log('Adding to order:', order);
-    alert(`Order ${selectedOrderId} for ${order.customerName} added successfully!`);
+    // Build the External Basket API payload
+    const basketPayload = {
+        externalReference: order.id,
+        basketType: "RECEIPT",
+        itemLines: order.items.map((item, index) => ({
+            itemLineId: index + 1,
+            item: {
+                itemCode: item.sku
+            },
+            quantity: item.qty,
+            price: {
+                basePrice: item.price,
+                currentPrice: item.price
+            },
+            lineAmount: {
+                currency: config.currency,
+                value: item.price * item.qty
+            },
+            inventoryOrigin: {
+                warehouseId: config.warehouseId
+            }
+        })),
+        store: {
+            storeId: config.storeId
+        }
+    };
+
+    try {
+        showLoadingOverlay();
+        
+        // Call the Cegid External Basket API
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Add API key to headers if configured
+        if (config.apiKey) {
+            headers['Authorization'] = `Bearer ${config.apiKey}`;
+            // Or use a different header format if required:
+            // headers['X-API-Key'] = config.apiKey;
+        }
+
+        const response = await fetch(`${config.apiBaseUrl}/external-basket`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(basketPayload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Extract basketUUID from the response
+        const basketUUID = data.basketUUID || data.id || data.uuid;
+        
+        if (!basketUUID) {
+            throw new Error('No basket UUID returned from API');
+        }
+
+        console.log('Basket created successfully:', {
+            basketUUID: basketUUID,
+            orderId: order.id,
+            response: data
+        });
+
+        // Redirect to LiveStore POS with the basket UUID
+        const redirectUrl = `${config.posRedirectUrl}?basketId=${basketUUID}`;
+        
+        hideLoadingOverlay();
+        showNotification(`Order ${order.id} processed successfully! Redirecting...`, 'success');
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+            window.location.href = redirectUrl;
+        }, 1500);
+
+    } catch (error) {
+        hideLoadingOverlay();
+        console.error('Error adding order:', error);
+        showNotification(`Error: ${error.message}`, 'error');
+    }
+}
+
+// Loading Overlay
+function showLoadingOverlay() {
+    loadingOverlay.style.display = 'flex';
+}
+
+function hideLoadingOverlay() {
+    loadingOverlay.style.display = 'none';
+}
+
+// Notification System
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
     
-    // Example POST request (uncomment and modify as needed):
-    /*
-    fetch('https://X/test/add-order', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(order)
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert('Order added successfully!');
-        console.log('Success:', data);
-    })
-    .catch((error) => {
-        alert('Error adding order');
-        console.error('Error:', error);
-    });
-    */
+    const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ';
+    
+    notification.innerHTML = `
+        <span class="notification-icon">${icon}</span>
+        <span class="notification-message">${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Trigger animation
+    setTimeout(() => notification.classList.add('show'), 10);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
 }
 
 // Mock data for testing
