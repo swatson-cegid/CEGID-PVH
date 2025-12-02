@@ -5,12 +5,12 @@ let config = {
     tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
     proxyTokenUrl: 'http://localhost:3000/token',
     clientId: 'CegidRetailResourceFlowClient',
-    username: '',
-    password: '',
+    username: 'SWA@PSR_UK2',
+    password: 'Cegid.2020',
     apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1',
     proxyApiBaseUrl: 'http://localhost:3000',
-    storeId: '',
-    warehouseId: '',
+    storeId: 'UK201',
+    warehouseId: 'UK201',
     currency: 'GBP',
     posRedirectUrl: 'https://integration-retail-services.cegid.cloud/p/pos/'
 };
