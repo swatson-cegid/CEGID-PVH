@@ -1,13 +1,16 @@
 // Configuration
 let config = {
-    environment: 'p', // 'test' or 'prod'
+    environment: 'p', // Fixed to 'p' - this is the actual path, not test/prod
+    useProxy: false, // Set to true for local development with CORS proxy
     tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
+    proxyTokenUrl: 'http://localhost:3000/token',
     clientId: 'CegidRetailResourceFlowClient',
-    username: 'SWA@PSR_UK2',
-    password: 'Cegid.2020',
+    username: '',
+    password: '',
     apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1',
-    storeId: 'UK201',
-    warehouseId: 'UK201',
+    proxyApiBaseUrl: 'http://localhost:3000',
+    storeId: '',
+    warehouseId: '',
     currency: 'GBP',
     posRedirectUrl: 'https://integration-retail-services.cegid.cloud/p/pos/'
 };
@@ -42,22 +45,23 @@ function loadConfiguration() {
 
 function saveConfiguration() {
     const newConfig = {
-        environment: document.getElementById('environment').value.trim(),
+        environment: 'p', // Fixed - always use /p/ path
+        useProxy: document.getElementById('use-proxy').checked,
         clientId: 'CegidRetailResourceFlowClient', // Fixed client_id
         username: document.getElementById('username').value.trim(),
         password: document.getElementById('password').value.trim(),
-        apiBaseUrl: document.getElementById('api-base-url').value.trim(),
+        apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1', // Fixed URL
+        proxyApiBaseUrl: 'http://localhost:3000',
+        tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token', // Fixed token URL
+        proxyTokenUrl: 'http://localhost:3000/token',
         storeId: document.getElementById('store-id').value.trim(),
         warehouseId: document.getElementById('warehouse-id').value.trim(),
-        currency: document.getElementById('currency').value.trim() || 'USD',
-        posRedirectUrl: document.getElementById('pos-redirect-url').value.trim()
+        currency: document.getElementById('currency').value.trim() || 'GBP',
+        posRedirectUrl: document.getElementById('pos-redirect-url').value.trim() || 'https://integration-retail-services.cegid.cloud/p/pos/'
     };
 
-    // Update token URL based on environment
-    newConfig.tokenUrl = `https://integration-retail-services.cegid.cloud/${newConfig.environment}/as/connect/token`;
-
     // Validate required fields
-    if (!newConfig.username || !newConfig.password || !newConfig.apiBaseUrl || !newConfig.storeId || !newConfig.warehouseId) {
+    if (!newConfig.username || !newConfig.password || !newConfig.storeId || !newConfig.warehouseId) {
         showNotification('Please fill in all required fields', 'error');
         return;
     }
@@ -75,14 +79,13 @@ function saveConfiguration() {
 
 function openConfigModal() {
     // Populate form with current config
-    document.getElementById('environment').value = config.environment || 'test';
+    document.getElementById('use-proxy').checked = config.useProxy || false;
     document.getElementById('username').value = config.username || '';
     document.getElementById('password').value = config.password || '';
-    document.getElementById('api-base-url').value = config.apiBaseUrl || '';
     document.getElementById('store-id').value = config.storeId || '';
     document.getElementById('warehouse-id').value = config.warehouseId || '';
-    document.getElementById('currency').value = config.currency || 'USD';
-    document.getElementById('pos-redirect-url').value = config.posRedirectUrl || 'https://retail-services.cegid.cloud/t/pos/';
+    document.getElementById('currency').value = config.currency || 'GBP';
+    document.getElementById('pos-redirect-url').value = config.posRedirectUrl || 'https://integration-retail-services.cegid.cloud/p/pos/';
     
     document.getElementById('config-modal').style.display = 'flex';
 }
@@ -283,20 +286,39 @@ async function getAccessToken() {
     }
 
     try {
-        // Request new access token using Resource Owner Password Credentials
-        const tokenResponse = await fetch(config.tokenUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: new URLSearchParams({
-                grant_type: 'password',
-                client_id: config.clientId,
-                username: config.username,
-                password: config.password,
-                scope: 'RetailBackendApi offline_access'
-            })
-        });
+        let tokenResponse;
+        
+        if (config.useProxy) {
+            // Use local CORS proxy
+            tokenResponse = await fetch(config.proxyTokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    client_id: config.clientId,
+                    username: config.username,
+                    password: config.password,
+                    grant_type: 'password',
+                    scope: 'RetailBackendApi offline_access'
+                })
+            });
+        } else {
+            // Direct request to Cegid API
+            tokenResponse = await fetch(config.tokenUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    grant_type: 'password',
+                    client_id: config.clientId,
+                    username: config.username,
+                    password: config.password,
+                    scope: 'RetailBackendApi offline_access'
+                })
+            });
+        }
 
         if (!tokenResponse.ok) {
             const errorText = await tokenResponse.text();
@@ -311,11 +333,14 @@ async function getAccessToken() {
         const expiresIn = (tokenData.expires_in || 3600) - 300;
         tokenExpiry = Date.now() + (expiresIn * 1000);
 
-        console.log('Access token acquired successfully');
+        console.log('Access token acquired successfully', config.useProxy ? '(via proxy)' : '(direct)');
         return accessToken;
 
     } catch (error) {
         console.error('Error acquiring access token:', error);
+        if (config.useProxy && error.message.includes('Failed to fetch')) {
+            throw new Error('Cannot connect to proxy server. Make sure it is running on http://localhost:3000');
+        }
         throw new Error(`Authentication failed: ${error.message}`);
     }
 }
@@ -328,8 +353,8 @@ async function addToOrder() {
     }
 
     // Check if configuration is complete
-    if (!config.username || !config.password || !config.apiBaseUrl || !config.storeId || !config.warehouseId) {
-        showNotification('Please configure username, password and API settings first', 'error');
+    if (!config.username || !config.password || !config.storeId || !config.warehouseId) {
+        showNotification('Please configure username, password, store ID and warehouse ID first', 'error');
         openConfigModal();
         return;
     }
@@ -377,14 +402,33 @@ async function addToOrder() {
         console.log('Sending basket payload:', basketPayload);
 
         // Step 3: Call the Cegid External Basket API with Bearer token
-        const response = await fetch(`${config.apiBaseUrl}/external-basket`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(basketPayload)
-        });
+        // Note: config.apiBaseUrl already includes the full path including /external-basket
+        let response;
+        
+        if (config.useProxy) {
+            // Use local CORS proxy
+            response = await fetch(`${config.proxyApiBaseUrl}/external-basket`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    apiBaseUrl: config.apiBaseUrl,
+                    token: token,
+                    ...basketPayload
+                })
+            });
+        } else {
+            // Direct request to Cegid API - do NOT append /external-basket
+            response = await fetch(config.apiBaseUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(basketPayload)
+            });
+        }
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
@@ -526,7 +570,7 @@ function useMockData() {
                 "timestamp": "2025-01-15T12:40:55Z",
                 "items": [
                     {
-                        "id": "1256347890",
+                        "id": "UKC002                           X",
                         "sku": "UKC002                           X",
                         "product_name": "Cegid Woolly Hat",
                         "price": 20.00,
