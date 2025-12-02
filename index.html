@@ -4,39 +4,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PVH</title>
+    <title>PVH POS Integration</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
+    <!-- Configuration Modal -->
+    <div id="config-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>API Configuration</h2>
+                <button class="close-btn" onclick="closeConfigModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="api-base-url">API Base URL</label>
+                    <input type="text" id="api-base-url" placeholder="https://your-api-endpoint.com" />
+                </div>
+                <div class="form-group">
+                    <label for="api-key">API Key (Optional)</label>
+                    <input type="text" id="api-key" placeholder="Your API Key" />
+                </div>
+                <div class="form-group">
+                    <label for="store-id">Store ID</label>
+                    <input type="text" id="store-id" placeholder="STORE001" />
+                </div>
+                <div class="form-group">
+                    <label for="warehouse-id">Warehouse ID</label>
+                    <input type="text" id="warehouse-id" placeholder="WH001" />
+                </div>
+                <div class="form-group">
+                    <label for="currency">Currency</label>
+                    <input type="text" id="currency" placeholder="USD" maxlength="3" />
+                </div>
+                <div class="form-group">
+                    <label for="pos-redirect-url">LiveStore POS URL</label>
+                    <input type="text" id="pos-redirect-url" placeholder="https://retail-services.cegid.cloud/t/pos/" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeConfigModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveConfiguration()">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="header">
-        <h1>PVH POS INTEGRATION TEMPLATE</h1>
+        <div class="header-content">
+            <h1>PVH POS Integration</h1>
+            <button class="config-btn" onclick="openConfigModal()" title="Configuration">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M16.25 10C16.25 10.3125 16.2188 10.625 16.1875 10.9062L18.0938 12.3125C18.25 12.4375 18.3125 12.6562 18.2188 12.8438L16.4062 15.9062C16.3125 16.0938 16.125 16.1562 15.9375 16.0938L13.6875 15.1875C13.2188 15.5312 12.7188 15.8125 12.1562 16.0312L11.8125 18.4062C11.7812 18.625 11.5938 18.75 11.375 18.75H7.75C7.53125 18.75 7.34375 18.625 7.3125 18.4062L6.96875 16.0312C6.40625 15.8125 5.90625 15.5312 5.4375 15.1875L3.1875 16.0938C3 16.1562 2.8125 16.0938 2.71875 15.9062L0.90625 12.8438C0.8125 12.6562 0.875 12.4375 1.03125 12.3125L2.9375 10.9062C2.90625 10.625 2.875 10.3125 2.875 10C2.875 9.6875 2.90625 9.375 2.9375 9.09375L1.03125 7.6875C0.875 7.5625 0.8125 7.34375 0.90625 7.15625L2.71875 4.09375C2.8125 3.90625 3 3.84375 3.1875 3.90625L5.4375 4.8125C5.90625 4.46875 6.40625 4.1875 6.96875 3.96875L7.3125 1.59375C7.34375 1.375 7.53125 1.25 7.75 1.25H11.375C11.5938 1.25 11.7812 1.375 11.8125 1.59375L12.1562 3.96875C12.7188 4.1875 13.2188 4.46875 13.6875 4.8125L15.9375 3.90625C16.125 3.84375 16.3125 3.90625 16.4062 4.09375L18.2188 7.15625C18.3125 7.34375 18.25 7.5625 18.0938 7.6875L16.1875 9.09375C16.2188 9.375 16.25 9.6875 16.25 10Z" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+            </button>
+        </div>
     </header>
 
     <!-- Main Content -->
     <main class="main-content">
         <!-- Left Section - Order Numbers -->
         <section class="order-list-section">
-            <h2>Orders</h2>
+            <div class="section-header">
+                <h2>Orders</h2>
+                <span id="order-count" class="order-count">0</span>
+            </div>
             <div id="order-list" class="order-list">
-                <p class="loading">Loading orders...</p>
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading orders...</p>
+                </div>
             </div>
         </section>
 
         <!-- Right Section - Order Details -->
         <section class="order-details-section">
-            <h2>Order Details</h2>
+            <div class="section-header">
+                <h2>Order Details</h2>
+            </div>
             <div id="order-details" class="order-details">
-                <p class="placeholder">Select an order to view details</p>
+                <div class="placeholder-state">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 16H56V48C56 50.2091 54.2091 52 52 52H12C9.79086 52 8 50.2091 8 48V16Z" stroke="#CCCCCC" stroke-width="2"/>
+                        <path d="M20 16V12C20 9.79086 21.7909 8 24 8H40C42.2091 8 44 9.79086 44 12V16" stroke="#CCCCCC" stroke-width="2"/>
+                        <path d="M20 28H44" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M20 36H36" stroke="#CCCCCC" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <p>Select an order to view details</p>
+                </div>
             </div>
         </section>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>&copy;2025 PVH Corp., New York, NY. All rights reserved.</p>
+        <p>&copy; 2025 PVH Corp., New York, NY. All rights reserved.</p>
     </footer>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-large"></div>
+            <p>Processing order...</p>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>
