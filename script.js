@@ -1,6 +1,6 @@
 // Configuration
 let config = {
-    environment: 'p', // Fixed to 'p' - this is the actual path, not test/prod
+    environment: 'p', // Fixed to 'p' - this is the actual path
     useProxy: false, // Set to true for local development with CORS proxy
     tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
     proxyTokenUrl: 'http://localhost:3000/token',
@@ -11,8 +11,7 @@ let config = {
     proxyApiBaseUrl: 'http://localhost:3000',
     storeId: 'UK201',
     warehouseId: 'UK201',
-    currency: 'GBP',
-    posRedirectUrl: 'https://integration-retail-services.cegid.cloud/p/pos/'
+    currency: 'GBP'
 };
 
 // Token cache
@@ -56,8 +55,7 @@ function saveConfiguration() {
         proxyTokenUrl: 'http://localhost:3000/token',
         storeId: document.getElementById('store-id').value.trim(),
         warehouseId: document.getElementById('warehouse-id').value.trim(),
-        currency: document.getElementById('currency').value.trim() || 'GBP',
-        posRedirectUrl: document.getElementById('pos-redirect-url').value.trim() || 'https://integration-retail-services.cegid.cloud/p/pos/'
+        currency: document.getElementById('currency').value.trim() || 'GBP'
     };
 
     // Validate required fields
@@ -85,7 +83,6 @@ function openConfigModal() {
     document.getElementById('store-id').value = config.storeId || '';
     document.getElementById('warehouse-id').value = config.warehouseId || '';
     document.getElementById('currency').value = config.currency || 'GBP';
-    document.getElementById('pos-redirect-url').value = config.posRedirectUrl || 'https://integration-retail-services.cegid.cloud/p/pos/';
     
     document.getElementById('config-modal').style.display = 'flex';
 }
@@ -437,25 +434,25 @@ async function addToOrder() {
 
         const data = await response.json();
         
-        // Step 4: Extract basketUUID from the response
-        const basketUUID = data.basketUUID || data.id || data.uuid || data.basketId;
+        // Step 4: Extract redirect URL from the response
+        const redirectUrl = data.externalBasketUrl;
+        const basketId = data.externalBasketId;
         
-        if (!basketUUID) {
+        if (!redirectUrl || !basketId) {
             console.error('API Response:', data);
-            throw new Error('No basket UUID returned from API');
+            throw new Error('Missing externalBasketUrl or externalBasketId in API response');
         }
 
         console.log('Basket created successfully:', {
-            basketUUID: basketUUID,
+            externalBasketId: basketId,
+            externalBasketUrl: redirectUrl,
             orderId: order.id,
-            response: data
+            fullResponse: data
         });
 
-        // Step 5: Redirect to LiveStore POS with the basket UUID
-        const redirectUrl = `${config.posRedirectUrl}?basketId=${basketUUID}`;
-        
+        // Step 5: Redirect to LiveStore POS using the URL provided by the API
         hideLoadingOverlay();
-        showNotification(`Order ${order.id} processed successfully! Redirecting...`, 'success');
+        showNotification(`Order ${order.id} processed successfully! Redirecting to LiveStore...`, 'success');
         
         // Redirect after a short delay
         setTimeout(() => {
