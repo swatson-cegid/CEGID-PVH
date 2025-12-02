@@ -1,16 +1,16 @@
 // Configuration
 let config = {
     environment: 'p', // Fixed to 'p' - this is the actual path
-    useProxy: true, // Set to true for local development with CORS proxy
+    useProxy: false, // Set to true for local development with CORS proxy
     tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
     proxyTokenUrl: 'http://localhost:3000/token',
     clientId: 'CegidRetailResourceFlowClient',
-    username: 'SWA@PSR_UK2',
-    password: 'Cegid.2020',
+    username: '',
+    password: '',
     apiBaseUrl: 'https://integration-retail-services.cegid.cloud/p/pos/external-basket/v1',
     proxyApiBaseUrl: 'http://localhost:3000',
-    storeId: 'UK201',
-    warehouseId: 'UK201',
+    storeId: '',
+    warehouseId: '',
     currency: 'GBP'
 };
 
@@ -99,6 +99,7 @@ function parseOrdersData(data) {
     ordersList.forEach(order => {
         const orderId = order.id;
         const customerName = order.customer_name;
+        const customerCode = order.customer_code;
         const timestamp = order.timestamp;
         const items = order.items || [];
         
@@ -110,6 +111,7 @@ function parseOrdersData(data) {
         parsedOrders.push({
             id: orderId,
             customerName: customerName,
+            customerCode: customerCode,
             timestamp: timestamp,
             items: items,
             total: orderTotal,
@@ -168,7 +170,7 @@ function createOrderItem(order) {
         <div class="order-item-customer">${order.customerName}</div>
         <div class="order-item-meta">
             <span class="item-count">${order.itemCount} item${order.itemCount !== 1 ? 's' : ''}</span>
-            <span class="order-total">£${order.total.toFixed(2)}</span>
+            <span class="order-total">$${order.total.toFixed(2)}</span>
         </div>
     `;
     
@@ -220,8 +222,8 @@ function renderOrderDetails(order) {
                     <div class="item-id">ID: ${item.id}</div>
                 </div>
                 <div class="item-pricing">
-                    <div class="item-unit-price">£${item.price.toFixed(2)} × ${item.qty}</div>
-                    <div class="item-total">£${itemTotal.toFixed(2)}</div>
+                    <div class="item-unit-price">$${item.price.toFixed(2)} × ${item.qty}</div>
+                    <div class="item-total">$${itemTotal.toFixed(2)}</div>
                 </div>
             </div>
         `;
@@ -257,11 +259,11 @@ function renderOrderDetails(order) {
             <div class="order-summary">
                 <div class="summary-row">
                     <span class="summary-label">Subtotal:</span>
-                    <span class="summary-value">£${order.total.toFixed(2)}</span>
+                    <span class="summary-value">$${order.total.toFixed(2)}</span>
                 </div>
                 <div class="summary-row total">
                     <span class="summary-label">Total:</span>
-                    <span class="summary-value">£${order.total.toFixed(2)}</span>
+                    <span class="summary-value">$${order.total.toFixed(2)}</span>
                 </div>
             </div>
             
@@ -373,6 +375,9 @@ async function addToOrder() {
         const basketPayload = {
             externalReference: order.id,
             basketType: "RECEIPT",
+            customer: {
+                customerCode: order.customerCode
+            },
             itemLines: order.items.map((item, index) => ({
                 itemLineId: index + 1,
                 item: {
@@ -510,6 +515,7 @@ function useMockData() {
             {
                 "id": "3901234567",
                 "customer_name": "Alice Johnson",
+                "customer_code": "CUST001",
                 "timestamp": "2025-01-15T10:24:30Z",
                 "items": [
                     {
@@ -533,6 +539,7 @@ function useMockData() {
             {
                 "id": "3901234570",
                 "customer_name": "Brian Smith",
+                "customer_code": "CUST002",
                 "timestamp": "2025-01-15T11:05:10Z",
                 "items": [
                     {
@@ -564,6 +571,7 @@ function useMockData() {
             {
                 "id": "3901234575",
                 "customer_name": "Carla Reyes",
+                "customer_code": "SC2010000247",
                 "timestamp": "2025-01-15T12:40:55Z",
                 "items": [
                     {
