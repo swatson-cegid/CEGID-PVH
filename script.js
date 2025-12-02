@@ -2,13 +2,33 @@
 let orders = [];
 let selectedOrderId = null;
 
+// Configuration - Update these with your Cegid credentials
+const CONFIG = {
+    environment: 'p'
+    tokenUrl: 'https://integration-retail-services.cegid.cloud/p/as/connect/token',
+    basketUrl: 'https://integration-retail-services.cegid.cloud/p/api/external-basket',
+    liveStorePosUrl: 'https://integration-retail-services.cegid.cloud/p/pos/', // Update with actual LiveStore POS URL
+    
+    // Auth credentials
+    clientId: 'CegidRetailResourceFlowClient',
+    username: 'SWA@PSR_UK2', 
+    password: 'Cegid.2020', // Replace with actual password
+    grantType: 'password',
+    scope: 'RetailBackendApi offline_access',
+    
+    // Store configuration
+    storeId: 'UK201', // Replace with actual store ID
+    warehouseId: 'UK201', // Replace with actual warehouse ID
+    currency: 'GBP' 
+};
+
 // DOM Elements
 const orderListEl = document.getElementById('order-list');
 const orderDetailsEl = document.getElementById('order-details');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-        useMockData();
+    useMockData();
 });
 
 // Parse the order structure
@@ -162,8 +182,110 @@ function renderOrderDetails(order) {
     `;
 }
 
-// Add to Order function
-function addToOrder() {
+// Get Access Token from Cegid
+async function getCegidAccessToken() {
+    const tokenUrl = CONFIG.tokenUrl.replace('{{environment}}', CONFIG.environment);
+    
+    const body = new URLSearchParams({
+        client_id: CONFIG.clientId,
+        username: CONFIG.username,
+        password: CONFIG.password,
+        grant_type: CONFIG.grantType,
+        scope: CONFIG.scope
+    });
+    
+    try {
+        const response = await fetch(tokenUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: body.toString()
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Token request failed: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        return data.access_token;
+    } catch (error) {
+        console.error('Error getting access token:', error);
+        throw error;
+    }
+}
+
+// Create External Basket in Cegid
+async function createExternalBasket(order, accessToken) {
+    const basketUrl = CONFIG.basketUrl.replace('{{environment}}', CONFIG.environment);
+    
+    // Build item lines from order items
+    const itemLines = order.items.map((item, index) => ({
+        itemLineId: index + 1,
+        item: {
+            itemCode: item.sku
+        },
+        quantity: item.qty,
+        price: {
+            basePrice: item.price,
+            currentPrice: item.price
+        },
+        lineAmount: {
+            currency: CONFIG.currency,
+            value: item.price * item.qty
+        },
+        inventoryOrigin: {
+            warehouseId: CONFIG.warehouseId
+        }
+    }));
+    
+    // Build the basket payload
+    const basketPayload = {
+        externalReference: order.id,
+        basketType: "RECEIPT",
+        itemLines: itemLines,
+        store: {
+            storeId: CONFIG.storeId
+        }
+    };
+    
+    try {
+        const response = await fetch(basketUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify(basketPayload)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Basket creation failed: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        return data.basketUuid; // Return the basket UUID
+    } catch (error) {
+        console.error('Error creating basket:', error);
+        throw error;
+    }
+}
+
+// Redirect to LiveStore POS
+function redirectToLiveStorePOS(basketUuid) {
+    // Build the LiveStore POS URL with the basket UUID
+    const posUrl = `${CONFIG.liveStorePosUrl}?basketId=${basketUuid}`;
+    
+    console.log('Redirecting to LiveStore POS:', posUrl);
+    
+    // Redirect to the POS system
+    window.location.href = posUrl;
+}
+
+// Add to Order function - Main integration logic
+async function addToOrder() {
     if (!selectedOrderId) {
         alert('Please select an order first');
         return;
@@ -171,29 +293,39 @@ function addToOrder() {
     
     const order = orders.find(o => o.id === selectedOrderId);
     
-    // Here you can add your logic to POST to an endpoint
-    console.log('Adding to order:', order);
-    alert(`Order ${selectedOrderId} for ${order.customerName} added successfully!`);
+    // Validate configuration
+    if (!CONFIG.username.includes('@') || CONFIG.username.includes('{{')) {
+        alert('⚠️ Please update the CONFIG object with your Cegid credentials in the script.');
+        console.error('Configuration error: Please set username, password, storeId, warehouseId, and other required fields in CONFIG object');
+        return;
+    }
     
-    // Example POST request (uncomment and modify as needed):
-    /*
-    fetch('https://X/test/add-order', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(order)
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert('Order added successfully!');
-        console.log('Success:', data);
-    })
-    .catch((error) => {
-        alert('Error adding order');
-        console.error('Error:', error);
-    });
-    */
+    // Show loading state
+    const button = document.querySelector('.add-to-order-btn');
+    const originalText = button.textContent;
+    button.textContent = 'Processing...';
+    button.disabled = true;
+    
+    try {
+        console.log('Step 1: Getting access token...');
+        const accessToken = await getCegidAccessToken();
+        console.log('Access token obtained successfully');
+        
+        console.log('Step 2: Creating external basket...');
+        const basketUuid = await createExternalBasket(order, accessToken);
+        console.log('Basket created successfully. UUID:', basketUuid);
+        
+        console.log('Step 3: Redirecting to LiveStore POS...');
+        redirectToLiveStorePOS(basketUuid);
+        
+    } catch (error) {
+        console.error('Error in addToOrder:', error);
+        alert(`❌ Error: ${error.message}\n\nPlease check the console for more details and ensure your configuration is correct.`);
+        
+        // Restore button
+        button.textContent = originalText;
+        button.disabled = false;
+    }
 }
 
 // Mock data for testing
