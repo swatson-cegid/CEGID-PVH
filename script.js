@@ -567,12 +567,12 @@ function useMockData() {
                 "timestamp": "2025-01-15T12:40:55Z",
                 "items": [
                     {
-                        "id": "UKC002                           X",
-                        "sku": "UKC002                           X",
-                        "product_name": "Cegid Blue Woolly Hat",
-                        "price": 20.00,
+                        "id": "TH0001            001020         X",
+                        "sku": "TH0001            001020         X",
+                        "product_name": "KIDS' ESSENTIAL PRINT BACKPACK",
+                        "price": 65.00,
                         "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW38905_DW5_productswatch"
+                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/AU0AU01875_0K4_main"
                     }
                 ]
             }
