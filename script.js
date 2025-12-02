@@ -569,7 +569,7 @@ function useMockData() {
                     {
                         "id": "UKC002                           X",
                         "sku": "UKC002                           X",
-                        "product_name": "Cegid Woolly Hat",
+                        "product_name": "Cegid Blue Woolly Hat",
                         "price": 20.00,
                         "qty": 1,
                         "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW38905_DW5_productswatch"
