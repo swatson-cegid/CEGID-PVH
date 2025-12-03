@@ -519,8 +519,8 @@ function useMockData() {
                 "timestamp": "2025-12-01T10:24:30Z",
                 "items": [
                     {
-                        "id": "TH0002            00500L         X",
-                        "sku": "TH0002            00500L         X",
+                        "id": "TH0002            005022         X",
+                        "sku": "TH0002            005022         X",
                         "product_name": "FLAG EMBROIDERY CREW NECK SWEATSHIRT M OLYMPIC GREEN",
                         "price": 90.00,
                         "qty": 1,
