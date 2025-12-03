@@ -515,56 +515,56 @@ function useMockData() {
             {
                 "id": "3901234567",
                 "customer_name": "Alice Johnson",
-                "customer_code": "CUST001",
+                "customer_code": "SC2010000249",
                 "timestamp": "2025-01-15T10:24:30Z",
                 "items": [
                     {
-                        "id": "1256347801",
-                        "sku": "MW0MW10800C1Z",
-                        "product_name": "Slim Jersey Crew Neck T-Shirt",
-                        "price": 40.00,
-                        "qty": 2,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW10800_C1Z_productswatch"
+                        "id": "TH0002            00500L         X",
+                        "sku": "TH0002            00500L         X",
+                        "product_name": "FLAG EMBROIDERY CREW NECK SWEATSHIRT M OLYMPIC GREEN",
+                        "price": 90.00,
+                        "qty": 1,
+                        "thumbnail": "https://img01.ztat.net/article/spp-media-p1/a3bb34ea387d4160932102cbbdb70148/0228b275279246f6ba7bd51e7c7ad0d4.jpg"
                     },
                     {
-                        "id": "1256347802",
-                        "sku": "DW0DW224541BK",
-                        "product_name": "Sylvia High Rise Flared Jeans",
-                        "price": 85.00,
+                        "id": "TH0003            00500L         X",
+                        "sku": "TH0003            00500L         X",
+                        "product_name": "WATER RESISTANT PORTLAND BOMBER JACKET M BLACK",
+                        "price": 180.00,
                         "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/DW0DW22454_1BK_productswatch"
+                        "thumbnail": "https://www.luxuryformen.com/media/catalog/product/cache/0390422c70b9b6b0416eda4c1783f65c/t/o/tommy_hilfiger_portland_bomber_jacket_mw0mw34455dw5_navy_1.jpg"
                     }
                 ]
             },
             {
                 "id": "3901234570",
                 "customer_name": "Brian Smith",
-                "customer_code": "CUST002",
+                "customer_code": "SC2010000248",
                 "timestamp": "2025-01-15T11:05:10Z",
                 "items": [
                     {
-                        "id": "1256347810",
-                        "sku": "MW0MW11599L6K",
-                        "product_name": "Logo Embroidery Flex Fleece Hoody",
-                        "price": 110.00,
+                        "id": "TH0004            005025         X",
+                        "sku": "TH0004            005025         X",
+                        "product_name": "TH ORIGINAL LOGO WAISTBAND TRUNKS M NYC",
+                        "price": 25.00,
                         "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/MW0MW11599_L6K_productswatch"
+                        "thumbnail": "https://cegidupload.sirv.com/Images/LS/th.jpg"
                     },
                     {
-                        "id": "1256347811",
-                        "sku": "AM0AM12020C1G",
-                        "product_name": "Heritage Logo Baseball Cap",
-                        "price": 28.00,
+                        "id": "TH0005                           X",
+                        "sku": "TH0005                           X",
+                        "product_name": "ESSENTIAL SIGNATURE MEDIUM DUFFEL BAG",
+                        "price": 160.00,
                         "qty": 1,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/AM0AM12020_C1G_productswatch"
+                        "thumbnail": "https://tommyhilfigergibraltar.com/12800-thickbox_default/essential-signature-medium-duffel-bag.jpg"
                     },
                     {
-                        "id": "1256347812",
-                        "sku": "08A1371111085",
-                        "product_name": "2-Pack Classic Flag Embroidery Socks",
-                        "price": 14.00,
-                        "qty": 2,
-                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/08A1371111_085_productswatch"
+                        "id": "TH0006            001026         X",
+                        "sku": "TH0006            001026         X",
+                        "product_name": "RIVET DETAIL ROUND SUNGLASSES",
+                        "price": 135.00,
+                        "qty": 1,
+                        "thumbnail": "https://www.fashioneyewear.com/cdn/shop/files/197737057893_P00_538d66ff-3e39-48d8-975c-820964fd0168.jpg"
                     }
                 ]
             },
