@@ -170,7 +170,7 @@ function createOrderItem(order) {
         <div class="order-item-customer">${order.customerName}</div>
         <div class="order-item-meta">
             <span class="item-count">${order.itemCount} item${order.itemCount !== 1 ? 's' : ''}</span>
-            <span class="order-total">$${order.total.toFixed(2)}</span>
+            <span class="order-total">£${order.total.toFixed(2)}</span>
         </div>
     `;
     
@@ -222,8 +222,8 @@ function renderOrderDetails(order) {
                     <div class="item-id">ID: ${item.id}</div>
                 </div>
                 <div class="item-pricing">
-                    <div class="item-unit-price">$${item.price.toFixed(2)} × ${item.qty}</div>
-                    <div class="item-total">$${itemTotal.toFixed(2)}</div>
+                    <div class="item-unit-price">£${item.price.toFixed(2)} × ${item.qty}</div>
+                    <div class="item-total">£${itemTotal.toFixed(2)}</div>
                 </div>
             </div>
         `;
@@ -259,11 +259,11 @@ function renderOrderDetails(order) {
             <div class="order-summary">
                 <div class="summary-row">
                     <span class="summary-label">Subtotal:</span>
-                    <span class="summary-value">$${order.total.toFixed(2)}</span>
+                    <span class="summary-value">£${order.total.toFixed(2)}</span>
                 </div>
                 <div class="summary-row total">
                     <span class="summary-label">Total:</span>
-                    <span class="summary-value">$${order.total.toFixed(2)}</span>
+                    <span class="summary-value">£${order.total.toFixed(2)}</span>
                 </div>
             </div>
             
