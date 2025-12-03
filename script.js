@@ -786,7 +786,7 @@ function useMockData() {
             {
                 "id": "3901234580",
                 "customer_name": "David Martinez",
-                "customer_code": "SC2010000246",
+                "customer_code": "SC2010000250",
                 "fulfillment_type": "HOMEDELIVERY",
                 "timestamp": "2025-12-02T14:15:20Z",
                 "customer_info": {
@@ -821,7 +821,7 @@ function useMockData() {
             {
                 "id": "3901234585",
                 "customer_name": "Emma Wilson",
-                "customer_code": "SC2010000245",
+                "customer_code": "SC2010000251",
                 "fulfillment_type": "STORERESERVATION",
                 "timestamp": "2025-12-02T15:30:45Z",
                 "customer_info": {
