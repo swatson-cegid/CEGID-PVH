@@ -516,7 +516,7 @@ function useMockData() {
                 "id": "3901234567",
                 "customer_name": "Alice Johnson",
                 "customer_code": "SC2010000249",
-                "timestamp": "2025-01-15T10:24:30Z",
+                "timestamp": "2025-12-01T10:24:30Z",
                 "items": [
                     {
                         "id": "TH0002            00500L         X",
@@ -540,7 +540,7 @@ function useMockData() {
                 "id": "3901234570",
                 "customer_name": "Brian Smith",
                 "customer_code": "SC2010000248",
-                "timestamp": "2025-01-15T11:05:10Z",
+                "timestamp": "2025-12-01T11:05:10Z",
                 "items": [
                     {
                         "id": "TH0004            005025         X",
@@ -572,7 +572,7 @@ function useMockData() {
                 "id": "3901234575",
                 "customer_name": "Carla Reyes",
                 "customer_code": "SC2010000247",
-                "timestamp": "2025-01-15T12:40:55Z",
+                "timestamp": "2025-12-02T12:40:55Z",
                 "items": [
                     {
                         "id": "TH0001            001020         X",
