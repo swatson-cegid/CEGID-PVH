@@ -444,10 +444,10 @@ async function addToOrder() {
                     attributes: [
                         {
                             attributeSource: "CustomerOrder",
-                            attributeCode: "OrderSource",
+                            attributeCode: "PRI",
                             attributeType: "LIST",
                             attributeValue: {
-                                listElementCode: "ECOMMERCE"
+                                listElementCode: "PRINEXTDAY"
                             }
                         }
                     ],
