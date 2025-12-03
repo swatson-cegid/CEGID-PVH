@@ -243,6 +243,35 @@ body {
     color: var(--neutral-600);
 }
 
+/* Fulfillment Type Badges */
+.fulfillment-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-sm);
+    margin: var(--spacing-2) 0;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.fulfillment-badge.instore {
+    background: var(--neutral-100);
+    color: var(--neutral-700);
+}
+
+.fulfillment-badge.home-delivery {
+    background: var(--info-light);
+    color: var(--info);
+    border: 1px solid var(--info);
+}
+
+.fulfillment-badge.store-reservation {
+    background: var(--warning-light);
+    color: #E65100;
+    border: 1px solid var(--warning);
+}
+
 /* ===================================
    Order Details (CDS Card - Filled)
    =================================== */
@@ -284,6 +313,48 @@ body {
 }
 
 .order-timestamp {
+    font-size: 0.875rem;
+    color: var(--neutral-600);
+}
+
+/* Fulfillment Info Section */
+.fulfillment-info {
+    background: var(--info-light);
+    border: 1px solid var(--info);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-4);
+    margin-bottom: var(--spacing-6);
+}
+
+.fulfillment-info h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--info);
+    margin-bottom: var(--spacing-3);
+    display: flex;
+    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.address-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+}
+
+.address-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--neutral-900);
+}
+
+.address-line {
+    font-size: 0.875rem;
+    color: var(--neutral-700);
+}
+
+.address-contact {
     font-size: 0.875rem;
     color: var(--neutral-600);
 }
