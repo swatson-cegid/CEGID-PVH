@@ -100,6 +100,7 @@ function parseOrdersData(data) {
         const orderId = order.id;
         const customerName = order.customer_name;
         const customerCode = order.customer_code;
+        const fulfillmentType = order.fulfillment_type || 'INSTORE'; // Default to instore
         const timestamp = order.timestamp;
         const items = order.items || [];
         
@@ -112,10 +113,14 @@ function parseOrdersData(data) {
             id: orderId,
             customerName: customerName,
             customerCode: customerCode,
+            fulfillmentType: fulfillmentType,
             timestamp: timestamp,
             items: items,
             total: orderTotal,
-            itemCount: items.length
+            itemCount: items.length,
+            // Store additional customer/delivery info if present
+            customerInfo: order.customer_info,
+            deliveryInfo: order.delivery_info
         });
     });
     
@@ -162,12 +167,20 @@ function createOrderItem(order) {
         minute: '2-digit'
     });
     
+    // Fulfillment type badge
+    const fulfillmentBadge = order.fulfillmentType === 'HOMEDELIVERY' 
+        ? '<span class="fulfillment-badge home-delivery">Ship from Central</span>'
+        : order.fulfillmentType === 'STORERESERVATION'
+        ? '<span class="fulfillment-badge store-reservation">eReservation</span>'
+        : '<span class="fulfillment-badge instore">Instore Receipt</span>';
+    
     div.innerHTML = `
         <div class="order-item-header">
             <span class="order-item-id">${order.id}</span>
             <span class="order-item-time">${timeStr}</span>
         </div>
         <div class="order-item-customer">${order.customerName}</div>
+        ${fulfillmentBadge}
         <div class="order-item-meta">
             <span class="item-count">${order.itemCount} item${order.itemCount !== 1 ? 's' : ''}</span>
             <span class="order-total">£${order.total.toFixed(2)}</span>
@@ -239,6 +252,48 @@ function renderOrderDetails(order) {
         minute: '2-digit'
     });
     
+    // Build fulfillment info HTML
+    let fulfillmentInfoHtml = '';
+    
+    if (order.fulfillmentType === 'HOMEDELIVERY' && order.customerInfo) {
+        fulfillmentInfoHtml = `
+            <div class="fulfillment-info">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: text-bottom; margin-right: 4px;">
+                        <path d="M13 2H3C2.44772 2 2 2.44772 2 3V11C2 11.5523 2.44772 12 3 12H13C13.5523 12 14 11.5523 14 11V3C14 2.44772 13.5523 2 13 2Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M2 4L8 8L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Delivery Address
+                </h3>
+                <div class="address-details">
+                    <div class="address-name">${order.customerInfo.firstName} ${order.customerInfo.lastName}</div>
+                    <div class="address-line">${order.customerInfo.addressLine1}</div>
+                    <div class="address-line">${order.customerInfo.city}, ${order.customerInfo.postalCode}</div>
+                    <div class="address-contact">${order.customerInfo.email}</div>
+                    <div class="address-contact">${order.customerInfo.phone}</div>
+                </div>
+            </div>
+        `;
+    } else if (order.fulfillmentType === 'STORERESERVATION' && order.deliveryInfo) {
+        fulfillmentInfoHtml = `
+            <div class="fulfillment-info">
+                <h3>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: text-bottom; margin-right: 4px;">
+                        <path d="M2 6L8 2L14 6V13C14 13.5523 13.5523 14 13 14H3C2.44772 14 2 13.5523 2 13V6Z" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M6 14V8H10V14" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    Pickup Store
+                </h3>
+                <div class="address-details">
+                    <div class="address-name">${order.deliveryInfo.storeName}</div>
+                    <div class="address-line">${order.deliveryInfo.storeCity}, ${order.deliveryInfo.storePostalCode}</div>
+                    <div class="address-contact">${order.deliveryInfo.storeEmail}</div>
+                    <div class="address-contact">${order.deliveryInfo.storePhone}</div>
+                </div>
+            </div>
+        `;
+    }
+    
     orderDetailsEl.innerHTML = `
         <div class="order-details-content">
             <div class="order-header">
@@ -248,6 +303,8 @@ function renderOrderDetails(order) {
                     <div class="order-timestamp">${formattedDate}</div>
                 </div>
             </div>
+            
+            ${fulfillmentInfoHtml}
             
             <div class="items-section">
                 <h3>Items (${order.itemCount})</h3>
@@ -371,35 +428,174 @@ async function addToOrder() {
             throw new Error(`Authentication failed: ${authError.message}`);
         }
         
-        // Step 2: Build the External Basket API payload
-        const basketPayload = {
-            externalReference: order.id,
-            basketType: "RECEIPT",
-            customer: {
-                customerCode: order.customerCode
-            },
-            itemLines: order.items.map((item, index) => ({
-                itemLineId: index + 1,
-                item: {
-                    itemCode: item.sku
+        // Step 2: Build the External Basket API payload based on fulfillment type
+        let basketPayload;
+        
+        if (order.fulfillmentType === 'HOMEDELIVERY') {
+            // Home Delivery from Central Warehouse
+            basketPayload = {
+                externalReference: order.id,
+                basketType: "RECEIPT",
+                customer: {
+                    customerCode: order.customerCode
                 },
-                quantity: item.qty,
-                price: {
-                    basePrice: item.price,
-                    currentPrice: item.price
-                },
-                lineAmount: {
-                    currency: config.currency,
-                    value: item.price * item.qty
-                },
-                inventoryOrigin: {
-                    warehouseId: config.warehouseId
+                itemLines: order.items.map((item, index) => ({
+                    itemLineId: index + 1,
+                    attributes: [
+                        {
+                            attributeSource: "CustomerOrder",
+                            attributeCode: "OrderSource",
+                            attributeType: "LIST",
+                            attributeValue: {
+                                listElementCode: "ECOMMERCE"
+                            }
+                        }
+                    ],
+                    customerOrderDetails: {
+                        customerOrderWorkflow: {
+                            workflowCode: "HOMEDELIVERY"
+                        },
+                        deliveryAddress: {
+                            address: {
+                                addressLine1: order.customerInfo?.addressLine1 || "123 Customer Street",
+                                addressLine2: "",
+                                addressLine3: "",
+                                city: {
+                                    cityLabel: order.customerInfo?.city || "London",
+                                    postalCode: order.customerInfo?.postalCode || "W1A 1AA"
+                                },
+                                country: {
+                                    countryISO3Code: order.customerInfo?.countryISO3 || "GBR"
+                                },
+                                email: order.customerInfo?.email || "customer@example.com",
+                                firstName: order.customerInfo?.firstName || order.customerName.split(' ')[0],
+                                lastName: order.customerInfo?.lastName || order.customerName.split(' ').slice(1).join(' '),
+                                phone: order.customerInfo?.phone || "+44 20 1234 5678"
+                            }
+                        }
+                    },
+                    item: {
+                        itemCode: item.sku
+                    },
+                    quantity: item.qty,
+                    lineAmount: {
+                        currency: config.currency,
+                        value: item.price * item.qty
+                    },
+                    price: {
+                        basePrice: item.price,
+                        currentPrice: item.price
+                    },
+                    inventoryOrigin: {
+                        warehouseId: "802"  // Central warehouse
+                    }
+                })),
+                store: {
+                    storeId: config.storeId
                 }
-            })),
-            store: {
-                storeId: config.storeId
-            }
-        };
+            };
+        } else if (order.fulfillmentType === 'STORERESERVATION') {
+            // Store Reservation / Click & Collect
+            basketPayload = {
+                externalReference: order.id,
+                basketType: "RECEIPT",
+                customer: {
+                    customerCode: order.customerCode
+                },
+                itemLines: order.items.map((item, index) => ({
+                    itemLineId: index + 1,
+                    customerOrderDetails: {
+                        customerOrderWorkflow: {
+                            workflowCode: "STORERESERVATION"
+                        },
+                        deliveryAddress: {
+                            address: {
+                                addressLine1: order.deliveryInfo?.storeName || config.storeId,
+                                city: {
+                                    cityLabel: order.deliveryInfo?.storeCity || "London",
+                                    postalCode: order.deliveryInfo?.storePostalCode || "W1A 1AA"
+                                },
+                                company: order.deliveryInfo?.storeName || config.storeId,
+                                country: {
+                                    countryCode: order.deliveryInfo?.storeCountryCode || "GB"
+                                },
+                                email: order.deliveryInfo?.storeEmail || "store@example.com",
+                                phone: order.deliveryInfo?.storePhone || "+44 20 1234 5678"
+                            }
+                        },
+                        pickupStore: {
+                            storeId: config.storeId
+                        }
+                    },
+                    item: {
+                        itemCode: item.sku
+                    },
+                    invoiceAddress: {
+                        address: {
+                            addressLine1: order.customerInfo?.addressLine1 || "123 Customer Street",
+                            addressLine2: "",
+                            addressLine3: "",
+                            city: {
+                                cityLabel: order.customerInfo?.city || "London",
+                                postalCode: order.customerInfo?.postalCode || "W1A 1AA"
+                            },
+                            country: {
+                                countryISO3Code: order.customerInfo?.countryISO3 || "GBR"
+                            },
+                            email: order.customerInfo?.email || "customer@example.com",
+                            firstName: order.customerInfo?.firstName || order.customerName.split(' ')[0],
+                            lastName: order.customerInfo?.lastName || order.customerName.split(' ').slice(1).join(' '),
+                            phone: order.customerInfo?.phone || "+44 20 1234 5678"
+                        }
+                    },
+                    quantity: item.qty,
+                    lineAmount: {
+                        currency: config.currency,
+                        value: item.price * item.qty
+                    },
+                    price: {
+                        basePrice: item.price,
+                        currentPrice: item.price
+                    },
+                    inventoryOrigin: {
+                        warehouseId: config.warehouseId
+                    }
+                })),
+                store: {
+                    storeId: config.storeId
+                }
+            };
+        } else {
+            // Standard Instore Receipt
+            basketPayload = {
+                externalReference: order.id,
+                basketType: "RECEIPT",
+                customer: {
+                    customerCode: order.customerCode
+                },
+                itemLines: order.items.map((item, index) => ({
+                    itemLineId: index + 1,
+                    item: {
+                        itemCode: item.sku
+                    },
+                    quantity: item.qty,
+                    price: {
+                        basePrice: item.price,
+                        currentPrice: item.price
+                    },
+                    lineAmount: {
+                        currency: config.currency,
+                        value: item.price * item.qty
+                    },
+                    inventoryOrigin: {
+                        warehouseId: config.warehouseId
+                    }
+                })),
+                store: {
+                    storeId: config.storeId
+                }
+            };
+        }
 
         console.log('Sending basket payload:', basketPayload);
 
@@ -516,6 +712,7 @@ function useMockData() {
                 "id": "3901234567",
                 "customer_name": "Alice Johnson",
                 "customer_code": "SC2010000249",
+                "fulfillment_type": "INSTORE",
                 "timestamp": "2025-12-01T10:24:30Z",
                 "items": [
                     {
@@ -540,6 +737,7 @@ function useMockData() {
                 "id": "3901234570",
                 "customer_name": "Brian Smith",
                 "customer_code": "SC2010000248",
+                "fulfillment_type": "INSTORE",
                 "timestamp": "2025-12-01T11:05:10Z",
                 "items": [
                     {
@@ -572,8 +770,87 @@ function useMockData() {
                 "id": "3901234575",
                 "customer_name": "Carla Reyes",
                 "customer_code": "SC2010000247",
+                "fulfillment_type": "INSTORE",
                 "timestamp": "2025-12-02T12:40:55Z",
                 "items": [
+                    {
+                        "id": "TH0001            001020         X",
+                        "sku": "TH0001            001020         X",
+                        "product_name": "KIDS' ESSENTIAL PRINT BACKPACK",
+                        "price": 65.00,
+                        "qty": 1,
+                        "thumbnail": "https://tommy-europe.scene7.com/is/image/TommyEurope/AU0AU01875_0K4_main"
+                    }
+                ]
+            },
+            {
+                "id": "3901234580",
+                "customer_name": "David Martinez",
+                "customer_code": "SC2010000246",
+                "fulfillment_type": "HOMEDELIVERY",
+                "timestamp": "2025-12-02T14:15:20Z",
+                "customer_info": {
+                    "firstName": "David",
+                    "lastName": "Martinez",
+                    "addressLine1": "45 Oxford Street",
+                    "city": "London",
+                    "postalCode": "W1D 2DZ",
+                    "countryISO3": "GBR",
+                    "email": "david.martinez@example.com",
+                    "phone": "+44 20 7946 0958"
+                },
+                "items": [
+                    {
+                        "id": "TH0004            005025         X",
+                        "sku": "TH0004            005025         X",
+                        "product_name": "TH ORIGINAL LOGO WAISTBAND TRUNKS M NYC",
+                        "price": 25.00,
+                        "qty": 2,
+                        "thumbnail": "https://cegidupload.sirv.com/Images/LS/th.jpg"
+                    },
+                    {
+                        "id": "TH0002            005022         X",
+                        "sku": "TH0002            005022         X",
+                        "product_name": "FLAG EMBROIDERY CREW NECK SWEATSHIRT M OLYMPIC GREEN",
+                        "price": 90.00,
+                        "qty": 1,
+                        "thumbnail": "https://img01.ztat.net/article/spp-media-p1/a3bb34ea387d4160932102cbbdb70148/0228b275279246f6ba7bd51e7c7ad0d4.jpg"
+                    }
+                ]
+            },
+            {
+                "id": "3901234585",
+                "customer_name": "Emma Wilson",
+                "customer_code": "SC2010000245",
+                "fulfillment_type": "STORERESERVATION",
+                "timestamp": "2025-12-02T15:30:45Z",
+                "customer_info": {
+                    "firstName": "Emma",
+                    "lastName": "Wilson",
+                    "addressLine1": "78 Baker Street",
+                    "city": "London",
+                    "postalCode": "NW1 6XE",
+                    "countryISO3": "GBR",
+                    "email": "emma.wilson@example.com",
+                    "phone": "+44 20 7946 0123"
+                },
+                "delivery_info": {
+                    "storeName": "Tommy Hilfiger London Regent Street",
+                    "storeCity": "London",
+                    "storePostalCode": "W1B 5AH",
+                    "storeCountryCode": "GB",
+                    "storeEmail": "regentstreet@tommy.com",
+                    "storePhone": "+44 20 7734 2999"
+                },
+                "items": [
+                    {
+                        "id": "TH0006            001026         X",
+                        "sku": "TH0006            001026         X",
+                        "product_name": "RIVET DETAIL ROUND SUNGLASSES",
+                        "price": 135.00,
+                        "qty": 1,
+                        "thumbnail": "https://www.fashioneyewear.com/cdn/shop/files/197737057893_P00_538d66ff-3e39-48d8-975c-820964fd0168.jpg"
+                    },
                     {
                         "id": "TH0001            001020         X",
                         "sku": "TH0001            001020         X",
